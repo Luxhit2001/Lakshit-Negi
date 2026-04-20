@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Power BI Style Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{margin:0;font-family:Segoe UI;background:#f5f6fa;transition:.3s}
+.dark{background:#121212;color:#fff}
+.container{display:flex}
+.sidebar{width:220px;background:#fff;padding:20px;height:100vh}
+.dark .sidebar{background:#1e1e1e}
+.sidebar button{display:block;width:100%;margin-bottom:10px}
+.main{flex:1;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.card{background:#fff;padding:15px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.05)}
+.dark .card{background:#1e1e1e}
+.topbar{position:sticky;top:0;background:inherit;padding:10px 0;z-index:10}
+.bottom-nav{display:none}
+@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex;position:fixed;bottom:0;width:100%;background:#fff;justify-content:space-around;padding:10px}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="sidebar">
+<h3>Navigation</h3>
+<button onclick="showPage('dashboard')">Dashboard</button>
+<button onclick="showPage('add')">Add Tx</button>
+<button onclick="showPage('settings')">Settings</button>
+<button onclick="toggleDark()">Toggle Theme</button>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+<div class="topbar">
+<select id="monthFilter"></select>
+<select id="typeFilter">
+<option value="all">All</option>
+<option value="income">Income</option>
+<option value="expense">Expense</option>
+</select>
+</div>
+
+<div class="grid">
+<div class="card"><div>Total Income</div><h2 id="income"></h2></div>
+<div class="card"><div>Total Expense</div><h2 id="expense"></h2></div>
+<div class="card"><div>Net Savings</div><h2 id="savings"></h2></div>
+<div class="card"><div>Budget %</div><h2 id="budget"></h2></div>
+</div>
+
+<div class="grid">
+<div class="card"><canvas id="trend"></canvas></div>
+<div class="card"><canvas id="category"></canvas></div>
+<div class="card"><canvas id="weekday"></canvas></div>
+</div>
+</div>
+
+<!-- ADD TRANSACTION -->
+<div id="add" style="display:none">
+<h2>Add Transaction</h2>
+<input type="date" id="date"><br>
+<select id="type"><option>income</option><option>expense</option></select><br>
+<input placeholder="Category" id="cat"><br>
+<input placeholder="Amount" id="amt" type="number"><br>
+<input placeholder="Note" id="note"><br>
+<button onclick="addTx()">Add</button>
+<button onclick="addDemo()">Add 10 Demo</button>
+<button onclick="resetDemo()">Reset 60 Days</button>
+<table id="table"></table>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" style="display:none">
+<h2>Settings</h2>
+<p>Data stored in localStorage</p>
+</div>
+
+</div>
+</div>
+
+<div class="bottom-nav">
+<button onclick="showPage('dashboard')">🏠</button>
+<button onclick="showPage('add')">➕</button>
+<button onclick="showPage('settings')">⚙️</button>
+</div>
+
+<script>
+let data=JSON.parse(localStorage.getItem('tx'))||generateDemo();
+
+function generateDemo(){
+let arr=[];
+for(let i=0;i<60;i++){
+let d=new Date();d.setDate(d.getDate()-i);
+arr.push({date:d.toISOString().split('T')[0],type:Math.random()>0.5?'income':'expense',category:['Food','Rent','Salary','Shopping'][Math.floor(Math.random()*4)],amount:Math.floor(Math.random()*500)+50});
+}
+localStorage.setItem('tx',JSON.stringify(arr));
+return arr;
+}
+
+function save(){localStorage.setItem('tx',JSON.stringify(data));}
+
+function showPage(p){['dashboard','add','settings'].forEach(x=>document.getElementById(x).style.display='none');document.getElementById(p).style.display='block';render();}
+
+function render(){
+let inc=0,exp=0;
+data.forEach(d=>{if(d.type=='income')inc+=d.amount;else exp+=d.amount});
+income.innerText=inc;
+expense.innerText=exp;
+savings.innerText=inc-exp;
+budget.innerText=Math.round((exp/(inc||1))*100)+'%';
+
+new Chart(trend,{type:'line',data:{labels:data.map(d=>d.date),datasets:[{label:'Income',data:data.map(d=>d.type=='income'?d.amount:0)},{label:'Expense',data:data.map(d=>d.type=='expense'?d.amount:0)}]}});
+}
+
+function addTx(){
+data.push({date:date.value,type:type.value,category:cat.value,amount:+amt.value,note:note.value});save();render();}
+
+function addDemo(){for(let i=0;i<10;i++)data.push({date:new Date().toISOString().split('T')[0],type:'expense',category:'Misc',amount:100});save();render();}
+
+function resetDemo(){localStorage.removeItem('tx');data=generateDemo();render();}
+
+function toggleDark(){document.body.classList.toggle('dark');}
+
+render();
+</script>
+
+</body>
+</html>
